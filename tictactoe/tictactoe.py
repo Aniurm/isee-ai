@@ -79,16 +79,16 @@ def winner(board):
     """
     # horizontal
     for i in range(len(board)):
-        if board[i][0] == board[i][1] and board[i][1] == board[i][2]:
+        if board[i][0] == board[i][1] and board[i][1] == board[i][2] and board[i][0] is not EMPTY:
             return board[i][0]
     # vertical
     for j in range(len(board[0])):
-        if board[0][j] == board[1][j] and board[1][j] == board[2][j]:
+        if board[0][j] == board[1][j] and board[1][j] == board[2][j] and board[0][j] is not EMPTY:
             return board[0][j]
     # diagonal
-    if board[0][0] == board[1][1] and board[1][1] == board[2][2]:
+    if board[0][0] == board[1][1] and board[1][1] == board[2][2] and board[0][0] is not EMPTY:
         return board[1][1] 
-    elif board[0][2] == board[1][1] and board[1][1] == board[2][0]:
+    elif board[0][2] == board[1][1] and board[1][1] == board[2][0] and board[0][2] is not EMPTY:
         return board[1][1]
     
     return None
