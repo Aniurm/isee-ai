@@ -23,7 +23,7 @@ def player(board):
     """
     Returns player who has the next turn on a board.
     """
-    # count apperance
+    # count appearance of X and O
     countX, countO = 0, 0
     for i in range(len(board)):
         for j in range(len(board[0])):
@@ -112,7 +112,6 @@ def utility(board):
     """
     Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
     """
-    # assume terminal(board) is True
     win = winner(board)
     ans = 0
     if win == X:
@@ -123,7 +122,6 @@ def utility(board):
 
 
 def pickMax(board, bestScore):
-    # Is leaf, no more recursion
     if (terminal(board)):
         return utility(board)
 
@@ -131,6 +129,7 @@ def pickMax(board, bestScore):
     maxValue = -10
     for choice in choices:
         maxValue = max(maxValue, pickMin(result(board, choice), maxValue))
+        # Alpha-beta pruning
         if maxValue > bestScore:
             break
     
@@ -138,7 +137,6 @@ def pickMax(board, bestScore):
 
 
 def pickMin(board, bestScore):
-    # Is leaf, no more recursion
     if (terminal(board)):
         return utility(board)
 
@@ -146,6 +144,7 @@ def pickMin(board, bestScore):
     minValue = 10
     for choice in choices:
         minValue = min(minValue, pickMax(result(board, choice), minValue))
+        # Alpha-beta pruning
         if minValue < bestScore:
             break
     
@@ -155,29 +154,25 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    # decide to pick max or min according to the role
+    # Decide to pick max or min according to the role
     role = player(board)
     choices = actions(board)
     action = None
     if role == X:
         maxScore = -10
         for choice in choices:
-            # current score after making the choice
+            # After making the choice, O will pick the min score
             cur = pickMin(result(board, choice), maxScore)
             if cur > maxScore:
-                # record the best choice which can produce maxScore
                 maxScore = cur
                 action = choice
     elif role == O:
         minScore = 10
         for choice in choices:
-            # current score after making the choice
+            # After making the choice, X will pick the max score
             cur = pickMax(result(board, choice), minScore)
             if cur < minScore:
-                # record the best choice which can produce minScore
                 minScore = cur
                 action = choice
     
     return action
-
-
