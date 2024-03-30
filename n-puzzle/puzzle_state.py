@@ -1,3 +1,4 @@
+from queue import PriorityQueue
 import numpy as np
 from enum import Enum
 import copy
@@ -39,6 +40,13 @@ class PuzzleState(object):
 
     def __eq__(self, other):
         return (self.state == other.state).all()
+
+    def __str__(self):
+        return np.array_str(self.state)
+    
+    def __lt__(self, other):
+        # Compare PuzzleState objects based on their f value (g + h)
+        return (self.g + self.h) < (other.g + other.h)
 
     def blank_pos(self):
         """
@@ -314,80 +322,53 @@ def convert_moves(moves):
         return moves
 
 
-"""
-NOTICE:
-1. init_state is a 3x3 numpy array, the "space" is indicated as -1, for example
-    1 2 -1              1 2
-    3 4 5   stands for  3 4 5
-    6 7 8               6 7 8
-2. moves contains directions that transform initial state to final state. Here
-    0 stands for up
-    1 stands for down
-    2 stands for left
-    3 stands for right
-    We 
-   There might be several ways to understand "moving up/down/left/right". Here we define
-   that "moving up" means to move 'space' up, not move other numbers up. For example
-    1 2 5                1 2 -1
-    3 4 -1   move up =>  3 4 5
-    6 7 8                6 7 8
-   This definition is actually consistent with where your finger moves to
-   when you are playing 8 puzzle game.
-   
-3. It's just a simple example of A-Star search. You can implement this function in your own design.  
-"""
+def update_cost(curr_state, dst_state):
+    """
+    Update the cost of the current state (g and h values).
+    """
+    def manhattan_distance(state1, state2):
+        total_dist = 0
+        for i in range(1, state1.square_size ** 2):
+            x1, y1 = state1.num_pos(i)
+            x2, y2 = state2.num_pos(i)
+            total_dist += abs(x1 - x2) + abs(y1 - y2)
+        return total_dist
+
+    curr_state.g = curr_state.g if curr_state.pre_state is None else curr_state.pre_state.g + 1
+    curr_state.h = manhattan_distance(curr_state, dst_state)
+
 def astar_search_for_puzzle_problem(init_state, dst_state):
-    """
-    Use AStar-search to find the path from init_state to dst_state
-    :param init_state:  Initial puzzle state
-    :param dst_state:   Destination puzzle state
-    :return:  All operations needed to be performed from init_state to dst_state
-        moves: list of Move. e.g: move_list = [Move.Up, Move.Left, Move.Right, Move.Up]
-    """
+    # Initialize the open list with the initial state
+    open_list = PriorityQueue()
+    open_list.put((0, init_state))
 
-    start_state = init_state.clone()
-    end_state = dst_state.clone()
+    # Dictionary to store the best g values for visited states
+    visited = {str(init_state): init_state.g}
 
-    open_list = []   # You can also use priority queue instead of list
-    close_list = []
+    while not open_list.empty():
+        # Get the state with the lowest f value
+        _, curr_state = open_list.get()
 
-    move_list = []  # The operations from init_state to dst_state
+        # Check if we reached the destination state
+        if check_state(curr_state, dst_state):
+            # Reconstruct the path
+            path = []
+            while curr_state.pre_move is not None:
+                path.append(curr_state.pre_move)
+                curr_state = curr_state.pre_state
+            return path[::-1]  # Return reversed path
 
-    # Initial A-star
-    open_list.append(start_state)
+        # Iterate over possible moves
+        for move in Move:
+            valid_move, next_state = once_move(curr_state, move)
+            if valid_move:
+                update_cost(next_state, dst_state)
+                f_value = next_state.g + next_state.h
+                next_state_str = str(next_state)
 
-    while len(open_list) > 0:
-        # Get best node from open_list
-        curr_idx, curr_state = find_front_node(open_list)
+                # Check if this path is better than any previously found path
+                if next_state_str not in visited or f_value < visited[next_state_str]:
+                    visited[next_state_str] = f_value
+                    open_list.put((f_value, next_state))
 
-        # Delete best node from open_list
-        open_list.pop(curr_idx)
-
-        # Add best node in close_list
-        close_list.append(curr_state)
-
-        # Check whether found solution
-        if curr_state == dst_state:
-            moves = get_path(curr_state)
-            return moves
-
-        # Expand node
-        childs = expand_state(curr_state)
-
-        for child_state in childs:
-
-            # Explored node
-            in_list, match_state = state_in_list(child_state, close_list)
-            if in_list:
-                continue
-
-            # Assign cost to child state. You can also do this in Expand operation
-            child_state = update_cost(child_state, dst_state)
-
-            # Find a better state in open_list
-            in_list, match_state = state_in_list(child_state, open_list)
-            if in_list:
-                continue
-
-            open_list.append(child_state)  
-
+    return []  # Return empty list if no path is found
